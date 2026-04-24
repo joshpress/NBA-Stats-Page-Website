@@ -8,15 +8,22 @@
 <h1>NBA Player Stats</h1>
 
 <form>
-      <p>Get the Player or Team Stats</p>
+      <p>Team Stats</p>
     <div id="PlayerStats">
   
-    <label for="playerName">Player or Team Name:</label><br>
-    <input type="text" id="playerName" name="playerName" required><br>
+    <label for="playerName">Team Name:</label><br>
+    <input type="text" id="searchInput" name="playerName" required><br>
 
     
    </div>
-    <button id="submitPlayer" type="submitPlayer">Get Stats</button>
+    <button id="submitPlayer" type="button">Get Stats</button>
 </form>
+
+<table id="statsTable">
+  <thead>
+    <tr id="headerRow"></tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+</table>
 
 </body>
