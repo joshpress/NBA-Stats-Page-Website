@@ -1,0 +1,30 @@
+<head>
+<title>NBA Stats Page</title>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="styles.css">
+<script src="script.js"></script>
+</head>
+<body>
+<h1>NBA Player Stats</h1>
+
+<form>
+      <p>Team Stats/Player</p>
+    <div id="PlayerStats">
+  
+    <label for="playerName">Team/Player Name:</label><br>
+    
+    <input type="text" id="searchInput" name="playerName" required><br>
+
+    
+   </div>
+    <button id="submitPlayer" type="button">Get Stats</button>
+</form>
+<p id="searchMessage"></p>
+<table id="statsTable">
+  <thead>
+    <tr id="headerRow"></tr>
+  </thead>
+  <tbody id="tableBody"></tbody>
+</table>
+
+</body>
