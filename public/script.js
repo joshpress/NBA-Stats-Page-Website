@@ -48,12 +48,12 @@ function search(term) {
         return;
     }
     const filteredTeams = nbaData.filter(game =>
-        game.TEAM_NAME?.toLowerCase().includes(searchTerm) ||
-        game.GAME_DATE?.includes(searchTerm)
+        game.TEAM_NAME.toLowerCase().includes(searchTerm) ||
+        game.GAME_DATE.includes(searchTerm)
     );
 
     const filteredPlayers = playerData.filter(player =>
-        player.PLAYER_NAME?.toLowerCase().includes(searchTerm)
+        player.PLAYER_NAME.toLowerCase().includes(searchTerm)
     );
 
     const allResults = filteredTeams.concat(filteredPlayers);
