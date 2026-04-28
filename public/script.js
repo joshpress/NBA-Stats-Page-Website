@@ -40,6 +40,11 @@ function submitPlayerClick() {
 function search(term) {
     const searchTerm = term.toLowerCase();
     const searchMessage = document.getElementById("searchMessage");
+    const year = document.getElementById("year").value;
+//october is index 9
+    const seasonStart=new Date(year,9,1);
+    //june 30 of next year
+    const seasonEnd=new Date(year+1,5,30);
 
     searchMessage.innerText = "";
     if (!searchTerm) {
@@ -47,19 +52,30 @@ function search(term) {
         renderTable([]);
         return;
     }
-    const filteredTeams = nbaData.filter(game =>
-        game.TEAM_NAME.toLowerCase().includes(searchTerm) ||
+    //filter by name and year
+    const filteredTeams = nbaData.filter(game => {
+        const gameDate=new Date(game.GAME_DATE)
+        const matchesTerm = game.TEAM_NAME.toLowerCase().includes(searchTerm) ||
         game.GAME_DATE.includes(searchTerm)
-    );
+        //only check where year exists and is in the season
+        const matchesSeason = !year || (gameDate>=seasonStart && gameDate<=seasonEnd);
 
-    const filteredPlayers = playerData.filter(player =>
-        player.PLAYER_NAME.toLowerCase().includes(searchTerm)
-    );
+        return matchesTerm && matchesSeason;
+    });
+    //player filter
+    const filteredPlayers = playerData.filter(player => {
+        const gameDate=new Date(player.GAME_DATE);
+        const matchesTerm = player.PLAYER_NAME.toLowerCase().includes(searchTerm);
+
+        const matchesSeason = !year ||(gameDate>=seasonStart && gameDate<=seasonEnd);
+        return matchesTerm && matchesSeason;
+    });
 
     const allResults = filteredTeams.concat(filteredPlayers);
     if (allResults.length === 0) {
         searchMessage.innerText = `No results found for ${term}`;
     }
+
     renderTable(allResults.slice(0, 50));
 }
 
