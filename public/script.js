@@ -2,6 +2,19 @@
 let nbaData = [];
 let playerData = []
 
+const API_KEY = '75d593d10d0e92056e834e5b58bd72e8';
+const base_url = 'https://v1.basketball.api-sports.io';
+const nba_league_id = 12;
+const current_season = '2024-2025';
+let playerPhotos = {};
+//setting up api request
+const requestOptions = {
+    method: "GET",
+    headers: {
+        "x-rapidapi-key": API_KEY,
+        "x-rapidapi-host": "v1.basketball.api-sports.io"
+    }
+}
 
 
 document.addEventListener("DOMContentLoaded", DOMContentLoaded);
@@ -18,6 +31,44 @@ function DOMContentLoaded() {
 }
 async function loadData() {
     try {
+        //fetching games
+        const gameRes = await fetch(`${base_url}/games?league=${nba_league_id}&season=${current_season}`, requestOptions);
+        const gamesData = await gameRes.json();
+        //fetching betting odds
+
+        const oddsRes = await fetch(`${base_url}/odds?league=${nba_league_id}&season=${current_season}`, requestOptions);
+        const oddsData = await oddsRes.json();
+        //fetching player data
+        const playerRes = await fetch(`${base_url}/players?league=${nba_league_id}&season=${current_season}`, requestOptions);
+        playerData = await playerRes.json();
+        //getting player photos, mapping playerid to imgURL
+        playerData.response.forEach(p => {
+            playerPhotos[p.id] = p.photo;
+        });
+        //getting odds game data
+        const live_data = gamesData.response.map(game => {
+            //find a match for the game
+            const gameOdds = oddsData.response?.find(o => o.game.id === game.id);
+
+
+            return {
+                GAME_ID: game.id,
+                GAME_DATE: game.date,
+                TEAM_NAME: `${game.teams.home.name} vs ${game.teams.away.name}`,
+                STATUS: game.status.long,
+                SCORE: `${game.scores.home.total} - ${game.scores.away.total}`,
+                ODDS: gameOdds ? `Home: ${gameOdds.bookmakers[0].bets[0].values[0].odd}` : 'N/A',
+                HOME_LOGO: game.teams.home.logo,
+                AWAY_LOGO: game.teams.away.logo
+            };
+        });
+        renderLiveGames(live_data);
+
+
+        renderTable(nbaData); // Call render function here
+
+
+        //fetching JSON files
         const games_response = await fetch("/json/nba_games_2004_2026.json");
         const players_response = await fetch("/json/nba_player_stats_2004_2026.json")
         //set the arrays to the new data
@@ -41,10 +92,10 @@ function search(term) {
     const searchTerm = term.toLowerCase();
     const searchMessage = document.getElementById("searchMessage");
     const year = document.getElementById("year").value;
-//october is index 9
-    const seasonStart=new Date(year,9,1);
+    //october is index 9
+    const seasonStart = new Date(year, 9, 1);
     //june 30 of next year
-    const seasonEnd=new Date(year+1,5,30);
+    const seasonEnd = new Date(year + 1, 5, 30);
 
     searchMessage.innerText = "";
     if (!searchTerm) {
@@ -54,20 +105,20 @@ function search(term) {
     }
     //filter by name and year
     const filteredTeams = nbaData.filter(game => {
-        const gameDate=new Date(game.GAME_DATE)
+        const gameDate = new Date(game.GAME_DATE)
         const matchesTerm = game.TEAM_NAME.toLowerCase().includes(searchTerm) ||
-        game.GAME_DATE.includes(searchTerm)
+            game.GAME_DATE.includes(searchTerm)
         //only check where year exists and is in the season
-        const matchesSeason = !year || (gameDate>=seasonStart && gameDate<=seasonEnd);
+        const matchesSeason = !year || (gameDate >= seasonStart && gameDate <= seasonEnd);
 
         return matchesTerm && matchesSeason;
     });
     //player filter
     const filteredPlayers = playerData.filter(player => {
-        const gameDate=new Date(player.GAME_DATE);
+        const gameDate = new Date(player.GAME_DATE);
         const matchesTerm = player.PLAYER_NAME.toLowerCase().includes(searchTerm);
 
-        const matchesSeason = !year ||(gameDate>=seasonStart && gameDate<=seasonEnd);
+        const matchesSeason = !year || (gameDate >= seasonStart && gameDate <= seasonEnd);
         return matchesTerm && matchesSeason;
     });
 
@@ -89,7 +140,7 @@ function renderTable(data) {
     let columns = [];
     if (data[0].PLAYER_NAME) {
         //if a player is in data
-        columns = ["PLAYER_NAME", "GAME_DATE", "TEAM_NAME", "MATCHUP", "PTS", "REB", "AST", "WL"]
+        columns = ["PLAYER_NAME", "HOME_LOGO", "GAME_DATE", "TEAM_NAME", "AWAY_LOGO", "MATCHUP", "PTS", "REB", "AST", "WL"]
     }
     else {
         //if team name
@@ -111,4 +162,27 @@ function renderTable(data) {
         })
         tableBody.appendChild(tr)
     })
+}
+function renderLiveGames(games) {
+    console.log(games)
+    const liveDiv = document.getElementById("liveGames");
+    liveDiv.innerHTML = "";
+
+    games.forEach(game => {
+        const card = document.createElement("div");
+        card.className = "game-card";
+        card.innerHTML = `
+                <p>${game.GAME_DATE.split('T')[0]}</p>
+                <div>
+                    <img width=30px src="${game.HOME_LOGO}""> vs 
+                    <img width=30px src="${game.AWAY_LOGO}"">
+                </div>
+                <p>${game.TEAM_NAME}</p>
+                <p>Score: ${game.SCORE}</p>
+                <p>${game.STATUS}</p>
+                <p>Odds: ${game.ODDS}</p>
+            </div>
+        `;
+        liveDiv.appendChild(card);
+    });
 }
