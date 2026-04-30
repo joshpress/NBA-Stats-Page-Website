@@ -7,7 +7,8 @@ const base_url = 'https://v1.basketball.api-sports.io';
 const nba_league_id = 12;
 const current_season = '2024-2025';
 let playerPhotos = {};
-//setting up api request
+let liveDataLoaded = false;
+
 const requestOptions = {
     method: "GET",
     headers: {
@@ -19,38 +20,49 @@ const requestOptions = {
 
 document.addEventListener("DOMContentLoaded", DOMContentLoaded);
 function DOMContentLoaded() {
-
-
-
     submitPlayer.addEventListener("click", submitPlayerClick);
-
-    loadData();
-
-    submitPlayer.addEventListener("click", submitPlayerClick);
-
+    loadLocalData();
 }
-async function loadData() {
+
+// Loads historical data from local JSON files — runs on page load
+async function loadLocalData() {
+    try {
+        const games_response = await fetch("/json/nba_games_2004_2026.json");
+        const players_response = await fetch("/json/nba_player_stats_2004_2026.json");
+        nbaData = await games_response.json();
+        playerData = await players_response.json();
+    }
+    catch (error) {
+        console.log(`Error loading local data: ${error}`);
+    }
+}
+
+// Fetches live game data from the API — only runs on first search
+async function loadLiveData() {
+    if (liveDataLoaded) return;
+
     try {
         //fetching games
         const gameRes = await fetch(`${base_url}/games?league=${nba_league_id}&season=${current_season}`, requestOptions);
         const gamesData = await gameRes.json();
-        //fetching betting odds
 
+        //fetching betting odds
         const oddsRes = await fetch(`${base_url}/odds?league=${nba_league_id}&season=${current_season}`, requestOptions);
         const oddsData = await oddsRes.json();
+
         //fetching player data
         const playerRes = await fetch(`${base_url}/players?league=${nba_league_id}&season=${current_season}`, requestOptions);
-        playerData = await playerRes.json();
+        const livePlayerData = await playerRes.json();
+
         //getting player photos, mapping playerid to imgURL
-        playerData.response.forEach(p => {
+        livePlayerData.response.forEach(p => {
             playerPhotos[p.id] = p.photo;
         });
+
         //getting odds game data
         const live_data = gamesData.response.map(game => {
             //find a match for the game
             const gameOdds = oddsData.response?.find(o => o.game.id === game.id);
-
-
             return {
                 GAME_ID: game.id,
                 GAME_DATE: game.date,
@@ -62,29 +74,18 @@ async function loadData() {
                 AWAY_LOGO: game.teams.away.logo
             };
         });
+
         renderLiveGames(live_data);
-
-
-        renderTable(nbaData); // Call render function here
-
-
-        //fetching JSON files
-        const games_response = await fetch("/json/nba_games_2004_2026.json");
-        const players_response = await fetch("/json/nba_player_stats_2004_2026.json")
-        //set the arrays to the new data
-        nbaData = await games_response.json();
-        playerData = await players_response.json()
-
-
+        liveDataLoaded = true;
     }
     catch (error) {
-        console.log(`Error ${error}`);
+        console.log(`Error loading live data: ${error}`);
     }
 }
-function submitPlayerClick() {
+async function submitPlayerClick() {
+    await loadLiveData();
     let searchInput = document.getElementById("searchInput").value;
     search(searchInput);
-
 }
 
 
