@@ -1,6 +1,7 @@
 
 let nbaData = [];
-let playerData = []
+let playerData = [];
+let apiData = [];
 
 const API_KEY = '75d593d10d0e92056e834e5b58bd72e8';
 const base_url = 'https://v1.basketball.api-sports.io';
@@ -45,6 +46,7 @@ async function loadLiveData() {
         //fetching games
         const gameRes = await fetch(`${base_url}/games?league=${nba_league_id}&season=${current_season}`, requestOptions);
         const gamesData = await gameRes.json();
+        console.log(gamesData);
 
         //fetching betting odds
         const oddsRes = await fetch(`${base_url}/odds?league=${nba_league_id}&season=${current_season}`, requestOptions);
@@ -60,7 +62,7 @@ async function loadLiveData() {
         });
 
         //getting odds game data
-        const live_data = gamesData.response.map(game => {
+        apiData = gamesData.response.map(game => {
             //find a match for the game
             const gameOdds = oddsData.response?.find(o => o.game.id === game.id);
             return {
@@ -75,7 +77,7 @@ async function loadLiveData() {
             };
         });
 
-        renderLiveGames(live_data);
+        renderLiveGames(apiData);
         liveDataLoaded = true;
     }
     catch (error) {
@@ -123,12 +125,19 @@ function search(term) {
         return matchesTerm && matchesSeason;
     });
 
-    const allResults = filteredTeams.concat(filteredPlayers);
+
+
+    const filteredApiGames = apiData.filter(game => {
+        const matchesTerm = game.TEAM_NAME.toLowerCase().includes(searchTerm);
+
+        return matchesTerm;
+    })
+    const allResults=filteredPlayers.concat(filteredTeams);
+    renderTable(allResults.slice(0, 50));
     if (allResults.length === 0) {
         searchMessage.innerText = `No results found for ${term}`;
     }
-
-    renderTable(allResults.slice(0, 50));
+    renderLiveGames(filteredApiGames)
 }
 
 function renderTable(data) {
