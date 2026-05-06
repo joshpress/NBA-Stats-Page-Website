@@ -2,6 +2,7 @@
 let nbaData = [];
 let playerData = [];
 let apiData = [];
+const seasonCache = {};
 
 const API_KEY = '75d593d10d0e92056e834e5b58bd72e8';
 const base_url = 'https://v1.basketball.api-sports.io';
@@ -31,19 +32,25 @@ function DOMContentLoaded() {
     if (compareBtn) {
         compareBtn.addEventListener("click", comparePlayers);
     }
-    loadLocalData();
 }
 
-// Loads historical data from local JSON files — runs on page load
-async function loadLocalData() {
+// loads one season's games + players, caches the result so repeat picks are instant.
+async function loadSeason(year) {
+    if (seasonCache[year]) return seasonCache[year];
     try {
-        const games_response = await fetch("/json/nba_games_2004_2026.json");
-        const players_response = await fetch("/json/nba_player_stats_2004_2026.json");
-        nbaData = await games_response.json();
-        playerData = await players_response.json();
+        const [gamesRes, playersRes] = await Promise.all([
+            fetch(`/json/games_${year}.json`),
+            fetch(`/json/players_${year}.json`)
+        ]);
+        seasonCache[year] = {
+            games: await gamesRes.json(),
+            players: await playersRes.json()
+        };
+        return seasonCache[year];
     }
     catch (error) {
-        console.log(`Error loading local data: ${error}`);
+        console.log(`Error loading season ${year}: ${error}`);
+        return { games: [], players: [] };
     }
 }
 
@@ -93,12 +100,14 @@ async function loadLiveData() {
         console.log(`Error loading live data: ${error}`);
     }
 }
-function comparePlayers() {
+async function comparePlayers() {
+    const year = parseInt(document.getElementById("compareYear").value);
     const name1 = document.getElementById("p1Input").value.toLowerCase();
     const name2 = document.getElementById("p2Input").value.toLowerCase();
 
-    const player1 = playerData.find(p => p.PLAYER_NAME.toLowerCase().includes(name1));
-    const player2 = playerData.find(p => p.PLAYER_NAME.toLowerCase().includes(name2));
+    const season = await loadSeason(year);
+    const player1 = season.players.find(p => p.PLAYER_NAME.toLowerCase().includes(name1));
+    const player2 = season.players.find(p => p.PLAYER_NAME.toLowerCase().includes(name2));
 
     if (!player1 || !player2) {
         console.log('player not found');
@@ -130,8 +139,16 @@ function renderPlayerCard(elementId, player) {
 }
 
 async function submitPlayerClick() {
+    const year = parseInt(document.getElementById("year").value);
+    const searchMessage = document.getElementById("searchMessage");
+    searchMessage.innerText = "Loading...";
+
+    const season = await loadSeason(year);
+    nbaData = season.games;
+    playerData = season.players;
+
     await loadLiveData();
-    let searchInput = document.getElementById("searchInput").value;
+    const searchInput = document.getElementById("searchInput").value;
     search(searchInput);
 }
 
@@ -139,7 +156,7 @@ async function submitPlayerClick() {
 function search(term) {
     const searchTerm = term.toLowerCase();
     const searchMessage = document.getElementById("searchMessage");
-    const year = document.getElementById("year").value;
+    const year = parseInt(document.getElementById("year").value);
     //october is index 9
     const seasonStart = new Date(year, 9, 1);
     //june 30 of next year
