@@ -21,8 +21,10 @@ const requestOptions = {
 
 document.addEventListener("DOMContentLoaded", DOMContentLoaded);
 function DOMContentLoaded() {
-    submitPlayer.addEventListener("click", submitPlayerClick);
+   // submitPlayer.addEventListener("click", submitPlayerClick);
     loadLocalData();
+    const compareBtn = document.getElementById("compareBtn");
+    compareBtn.addEventListener("click", comparePlayers);
 }
 
 // Loads historical data from local JSON files — runs on page load
@@ -84,6 +86,42 @@ async function loadLiveData() {
         console.log(`Error loading live data: ${error}`);
     }
 }
+function comparePlayers() {
+    const name1 = document.getElementById("p1Input").value.toLowerCase();
+    const name2 = document.getElementById("p2Input").value.toLowerCase();
+
+    const player1 = playerData.find(p => p.PLAYER_NAME.toLowerCase().includes(name1));
+    const player2 = playerData.find(p => p.PLAYER_NAME.toLowerCase().includes(name2));
+
+    if (!player1 || !player2) {
+        console.log('player not found');
+        return;
+    }
+
+    renderPlayerCard("player1Card", player1);
+    renderPlayerCard("player2Card", player2);
+}
+
+function renderPlayerCard(elementId, player) {
+    const container = document.getElementById(elementId);
+    
+
+    container.innerHTML = `
+  <div class="player-card">
+    <h2>${player.PLAYER_NAME}</h2>
+    <p><strong>Season:</strong> ${player.SEASON_YEAR || 'N/A'}</p>
+    <ul style="list-style: none; padding: 0;">
+      <li><strong>Points:</strong> ${player.PTS || 0}</li>
+      <li><strong>Rebounds:</strong> ${player.REB || 0}</li>
+      <li><strong>Assists:</strong> ${player.AST || 0}</li>
+      <li><strong>Steals:</strong> ${player.STL || 0}</li>
+      <li><strong>FG%:</strong> ${(player.FG_PCT * 100).toFixed(1)}%</li>
+      <li><strong>Minutes:</strong> ${player.MIN_SEC || '0:00'}</li>
+    </ul>
+  </div>
+`;
+}
+
 async function submitPlayerClick() {
     await loadLiveData();
     let searchInput = document.getElementById("searchInput").value;
@@ -132,7 +170,7 @@ function search(term) {
 
         return matchesTerm;
     })
-    const allResults=filteredPlayers.concat(filteredTeams);
+    const allResults = filteredPlayers.concat(filteredTeams);
     renderTable(allResults.slice(0, 50));
     if (allResults.length === 0) {
         searchMessage.innerText = `No results found for ${term}`;
