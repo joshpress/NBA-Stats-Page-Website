@@ -21,10 +21,17 @@ const requestOptions = {
 
 document.addEventListener("DOMContentLoaded", DOMContentLoaded);
 function DOMContentLoaded() {
-   // submitPlayer.addEventListener("click", submitPlayerClick);
-    loadLocalData();
+    let submitPlayer = document.getElementById("submitPlayer");
+
+    if (submitPlayer) {
+        submitPlayer.addEventListener("click", submitPlayerClick);
+
+    }
     const compareBtn = document.getElementById("compareBtn");
-    compareBtn.addEventListener("click", comparePlayers);
+    if (compareBtn) {
+        compareBtn.addEventListener("click", comparePlayers);
+    }
+    loadLocalData();
 }
 
 // Loads historical data from local JSON files — runs on page load
@@ -104,7 +111,7 @@ function comparePlayers() {
 
 function renderPlayerCard(elementId, player) {
     const container = document.getElementById(elementId);
-    
+
 
     container.innerHTML = `
   <div class="player-card">
@@ -217,9 +224,9 @@ function renderLiveGames(games) {
     liveDiv.innerHTML = "";
 
     games.forEach(game => {
-        const card = document.createElement("div");
-        card.className = "game-card";
-        card.innerHTML = `
+        const stats=document.querySelectorAll("statsContainer")
+        stats.className = "game-card";
+        stats.innerHTML = `
                 <p>${game.GAME_DATE.split('T')[0]}</p>
                 <div>
                     <img width=30px src="${game.HOME_LOGO}""> vs 
@@ -231,6 +238,6 @@ function renderLiveGames(games) {
                 <p>Odds: ${game.ODDS}</p>
             </div>
         `;
-        liveDiv.appendChild(card);
+        liveDiv.appendChild(stats);
     });
 }
