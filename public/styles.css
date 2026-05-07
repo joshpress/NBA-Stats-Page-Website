@@ -68,7 +68,6 @@ body {
 div {
     display: flex;
     gap: 10px;
-    border: 1px solid orange;
     padding: 20px;
     background: white;
     border-radius: 8px;
@@ -94,22 +93,49 @@ td {
     text-align: left;
     border-bottom: 1px solid #eee;
 }
-#compareGrid{
-    display: flex; 
-    gap: 20px; 
-    justify-content: space-around;
+
+#playerStats, .search-area{
+     border: 1px solid orange;
 }
-#player1Card,player2Card{
-      background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    width: 250px; 
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+
+#compareGrid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border:1px solid #ffb800;
+  gap: 20px;
+  padding: 20px;
+  width: 100%;            
+  min-width: fit-content;  
 }
+
+
+.player-card {
+  background: #fff;
+  border: 2px solid #ffb800;
+  border-radius: 12px;
+  padding: 20px;
+  width: 350px;           
+      
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.player-name {
+  margin: 0 0 15px 0;
+  font-size: 1.8rem;
+}
+
+
+.statsContainer {
+  display: grid;
+  grid-template-columns: auto auto; 
+  gap: 10px;
+
+  padding: 15px;
+
+}
+
+
 tr:hover {
     color: blue
 }
