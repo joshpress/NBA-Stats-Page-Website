@@ -26,7 +26,6 @@ async function loadTeamIds() {
     try {
         const response = await fetch("/json/nba_team_id.json");
         nbaTeamIds = await response.json();
-        console.log(nbaTeamIds)
 
     }
     catch (error) {
@@ -122,51 +121,88 @@ async function loadLiveData() {
     }
 }
 
+
+function computeSeasonAverages(games) {
+   const gp = games.length;
+   const sum = (key) => games.reduce((s, g) => s + (Number(g[key]) || 0), 0);
+
+
+   const totalFGM = sum("FGM"), totalFGA = sum("FGA");
+   const totalFG3M = sum("FG3M"), totalFG3A = sum("FG3A");
+   const totalFTM = sum("FTM"), totalFTA = sum("FTA");
+   const avgMin = gp > 0 ? sum("MIN") / gp : 0;
+
+
+   return {
+       PLAYER_NAME: games[0].PLAYER_NAME,
+       SEASON_YEAR: games[0].SEASON_YEAR,
+       PLAYER_ID:games.PLAYER_ID,
+       ID:games.PLAYER_ID,
+       GP: gp,
+       PTS: gp > 0 ? +(sum("PTS") / gp).toFixed(1) : 0,
+       REB: gp > 0 ? +(sum("REB") / gp).toFixed(1) : 0,
+       AST: gp > 0 ? +(sum("AST") / gp).toFixed(1) : 0,
+       STL: gp > 0 ? +(sum("STL") / gp).toFixed(1) : 0,
+       FG_PCT:  totalFGA  > 0 ? totalFGM  / totalFGA  : 0,
+       FG3_PCT: totalFG3A > 0 ? totalFG3M / totalFG3A : 0,
+       FT_PCT:  totalFTA  > 0 ? totalFTM  / totalFTA  : 0,
+       MIN_SEC: avgMin.toFixed(2)
+   };
+}
+
+
+
+
 async function comparePlayers() {
-    const year = parseInt(document.getElementById("compareYear").value);
-    const name1 = document.getElementById("p1Input").value.toLowerCase();
-    const name2 = document.getElementById("p2Input").value.toLowerCase();
-    const errorDiv = document.getElementById("errorDiv");
+   const year = parseInt(document.getElementById("compareYear").value);
+   const name1 = document.getElementById("p1Input").value;
+   const name2 = document.getElementById("p2Input").value;
+   const errorDiv = document.getElementById("errorDiv");
 
-    if (!name1 || !name2) {
-        errorDiv.innerHTML = "<p>Please enter both player names</p>";
-        return;
-    }
 
-    if (year < 2004 || year > 2026) {
-        errorDiv.innerHTML = "<p>Please enter a year between 2004 and 2026.</p>";
-        return;
+   if (!name1 || !name2) {
+       errorDiv.innerHTML = "<p>Please enter both player names</p>";
+       return;
+   }
 
-    }
 
-    const season = await loadSeason(year);
-    const player1 = season.players.find(p => p.PLAYER_NAME.toLowerCase().includes(name1));
-    const player2 = season.players.find(p => p.PLAYER_NAME.toLowerCase().includes(name2));
+   if(year<2004 || year>2026){
+       errorDiv.innerHTML = "<p>Please enter a year between 2004 and 2026.</p>";
+       return;
 
-    if (!player1 || !player2) {
-        console.log('player not found');
-        return;
-    }
 
-    errorDiv.innerHTML = "";
-    renderPlayerCard("player1Card", player1);
-    renderPlayerCard("player2Card", player2);
+   }
+
+
+   const season = await loadSeason(year);
+   const player1 = season.players.find(p => p.PLAYER_NAME.toLowerCase().includes(name1));
+   const player2 = season.players.find(p => p.PLAYER_NAME.toLowerCase().includes(name2));
+
+
+   if (!player1 || !player2) {
+       console.log('player not found');
+       return;
+   }
+
+
+   errorDiv.innerHTML = "";
+   renderPlayerCard("player1Card",
+       computeSeasonAverages([player1]));
+   renderPlayerCard("player2Card",
+       computeSeasonAverages([player2]));
 }
 
 function renderPlayerCard(elementId, player) {
-    const container = document.getElementById(elementId);
-
+    const container = document.getElementById(elementId); 
     const nbaId =
         player.PLAYER_ID ||
         player.PERSON_ID ||
         player.ID ||
         player.player_id ||
         null;
-
     const photo = nbaId
         ? `https://cdn.nba.com/headshots/nba/latest/260x190/${nbaId}.png`
         : "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg";
-
     container.innerHTML = `
       <div class="player-card">
         <img src="${photo}" style="width:120px;border-radius:10px;margin-bottom:10px;">
@@ -220,33 +256,55 @@ function search(term) {
 
     searchMessage.innerText = "";
 
-    const filteredTeams = nbaData.filter(game => {
-        const gameDate = new Date(game.GAME_DATE);
-        const matchesTerm = game.TEAM_NAME.toLowerCase().includes(searchTerm);
-        const matchesSeason = gameDate >= seasonStart && gameDate <= seasonEnd;
-        return matchesTerm && matchesSeason;
-    });
+    const filteredTeams = nbaData
+  .filter(game => {
+    //get the date and season
+    const gameDate = new Date(game.GAME_DATE);
+    const matchesTerm = game.TEAM_NAME.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSeason = gameDate >= seasonStart && gameDate <= seasonEnd;
+    return matchesTerm && matchesSeason;
+  })
+  //get the logo of the team
+  .map(game => {
+
+    const logoEntry = teamLogos[game.TEAM_ABBREVIATION];
+    
+    return {
+      ...game,
+      TEAM_LOGO: logoEntry ? logoEntry.logo : null
+    };
+  });
     const filteredPlayers = playerData.filter(player => {
-        const gameDate = new Date(player.GAME_DATE);
-        const matchesTerm = player.PLAYER_NAME.toLowerCase().includes(searchTerm);
-        const matchesSeason = gameDate >= seasonStart && gameDate <= seasonEnd;
 
-        //get Home Team ID
-        const homeTeamId = player.TEAM_ID;
+    const gameDate = new Date(player.GAME_DATE);
+    const matchesTerm = player.PLAYER_NAME.toLowerCase().includes(searchTerm);
+    const matchesSeason = gameDate >= seasonStart && gameDate <= seasonEnd;
 
-        // get Away Team Abbreviation from MATCHUP (e.g., "DAL vs. CHI" -> "CHI")
-        const matchupParts = player.MATCHUP.split(' ');
-        const opponentAbbreviation = matchupParts[matchupParts.length - 1];
+    // logic to find the opponent
+    const playerAbbr = player.TEAM_ABBREVIATION;
+    const matchupParts = player.MATCHUP.split(' '); 
+    const opponentAbbr = matchupParts.find(part => 
+        part !== playerAbbr && part !== "@" && part !== "vs."
+    );
+
+    const opponentId = nbaTeamIds[opponentAbbr];
 
 
-        const opponentId = nbaTeamIds[opponentAbbreviation];
 
-        player.HOME_LOGO = `https://cdn.nba.com/logos/nba/${homeTeamId}/global/L/logo.svg`;
-        player.AWAY_LOGO  =`https://cdn.nba.com/logos/nba/${opponentId}/global/L/logo.svg`;
-        console.log(player.AWAY_LOGO);  
+player.HOME_LOGO = `https://cdn.nba.com/logos/nba/${player.TEAM_ID}/global/L/logo.svg`;
 
-        return matchesTerm && matchesSeason;
-    });
+console.log(opponentId)
+player.AWAY_LOGO = opponentId 
+
+    ? `https://cdn.nba.com/logos/nba/${opponentId}/global/L/logo.svg`
+    : ""; 
+
+  
+    return matchesTerm && matchesSeason;
+});
+
+
+
 
     const filteredApiGames = apiData.filter(game =>
         game.TEAM_NAME.toLowerCase().includes(searchTerm)
