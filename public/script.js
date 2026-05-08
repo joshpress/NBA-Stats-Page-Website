@@ -20,16 +20,16 @@ const requestOptions = {
     }
 };
 
-let nbaTeamIds={};
+let nbaTeamIds = {};
 
-async function loadTeamIds(){
-    try{
+async function loadTeamIds() {
+    try {
         const response = await fetch("/json/nba_team_id.json");
-        nbaTeamIds =await response.json();
+        nbaTeamIds = await response.json();
         console.log(nbaTeamIds)
 
     }
-    catch(error){
+    catch (error) {
         console.log(error);
     }
 }
@@ -133,7 +133,7 @@ async function comparePlayers() {
         return;
     }
 
-    if(year<2004 || year>2026){
+    if (year < 2004 || year > 2026) {
         errorDiv.innerHTML = "<p>Please enter a year between 2004 and 2026.</p>";
         return;
 
@@ -185,7 +185,7 @@ function renderPlayerCard(elementId, player) {
 }
 
 async function submitPlayerClick() {
-    
+
     const year = parseInt(document.getElementById("year").value);
     const searchMessage = document.getElementById("searchMessage");
     const searchInput = document.getElementById("searchInput").value;
@@ -194,7 +194,7 @@ async function submitPlayerClick() {
         renderTable([]);
         return;
     }
-    if(year<2004 || year>2026){
+    if (year < 2004 || year > 2026) {
         searchMessage.innerText = "Please enter a year between 2004 and 2026";
         return;
 
@@ -226,17 +226,24 @@ function search(term) {
         const matchesSeason = gameDate >= seasonStart && gameDate <= seasonEnd;
         return matchesTerm && matchesSeason;
     });
-
     const filteredPlayers = playerData.filter(player => {
         const gameDate = new Date(player.GAME_DATE);
         const matchesTerm = player.PLAYER_NAME.toLowerCase().includes(searchTerm);
         const matchesSeason = gameDate >= seasonStart && gameDate <= seasonEnd;
 
-        const team = player.TEAM_NAME?.toLowerCase();
-        const teamId = nbaTeamIds[team];
+        //get Home Team ID
+        const homeTeamId = player.TEAM_ID;
 
-        player.HOME_LOGO = teamId ? `https://cdn.nba.com/logos/nba/${teamId}/global/L/logo.svg` : "";
-        player.AWAY_LOGO = player.HOME_LOGO;
+        // get Away Team Abbreviation from MATCHUP (e.g., "DAL vs. CHI" -> "CHI")
+        const matchupParts = player.MATCHUP.split(' ');
+        const opponentAbbreviation = matchupParts[matchupParts.length - 1];
+
+
+        const opponentId = nbaTeamIds[opponentAbbreviation];
+
+        player.HOME_LOGO = `https://cdn.nba.com/logos/nba/${homeTeamId}/global/L/logo.svg`;
+        player.AWAY_LOGO  =`https://cdn.nba.com/logos/nba/${opponentId}/global/L/logo.svg`;
+        console.log(player.AWAY_LOGO);  
 
         return matchesTerm && matchesSeason;
     });
@@ -253,8 +260,9 @@ function search(term) {
     }
 
     renderLiveGames(filteredApiGames);
-}
 
+renderLiveGames(filteredApiGames);
+}
 function renderTable(data) {
     const headerRow = document.getElementById("headerRow");
     const tableBody = document.getElementById("tableBody");
